@@ -13,13 +13,10 @@ contract MikaCoin {
     mapping(address => uint256) public balanceOf;
 
     /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
+     * @dev If account A is approving account B to spend X number of MikaCoins.
      */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    
+    mapping(address => mapping(address => uint256)) public allowance;
+
     /**
      * @dev Sets the values for {name} and {symbol}.
      *
@@ -33,6 +30,20 @@ contract MikaCoin {
         // Allocate supply of tokens to contract creator
         balanceOf[msg.sender] = _initialSupply;
     }
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     /**
      * @dev Moves {amount} tokens from the caller's account to {recipient}.
@@ -53,4 +64,48 @@ contract MikaCoin {
         
         return true;
     }
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) public returns (bool) {
+
+        allowance[msg.sender][spender] = amount;
+        
+        emit Approval(msg.sender, spender, amount);
+        
+        return true;
+    }
+
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
+        
+        require(amount <= balanceOf[sender], "Transfer amount exceeds balance.");
+        require(amount <= allowance[sender][msg.sender], "Transfer amount exceeds amount allowed to be transferred.");
+
+        // update balances
+        balanceOf[sender] -= amount;
+        balanceOf[recipient] += amount;
+
+        // update allowances
+        allowance[sender][msg.sender] -= amount;
+        
+        emit Transfer(sender, recipient, amount);
+        
+        return true;
+    }
+    
 }
