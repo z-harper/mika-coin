@@ -1,8 +1,76 @@
-
+import { useState, useEffect } from 'react';
+import Web3 from 'web3';
+import CoinSaleAbi from './contracts/CoinSale.json';
 import 'animate.css';
 import MikaImg from './static/mika.PNG';
 
 function App() {
+
+  const [currentAccount, setCurrentAccount] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Define connection with MetaMask using web3
+  const loadWeb3 = async () => {
+    if (window.ethereum) {
+      window.web3 = new Web3(window.ethereum);
+      await window.ethereum.enable();
+    } else if (window.web3) {
+      window.web3 = new Web3(window.web3.currentProvider);
+    } else {
+      window.alert('Non-Ethereum browser detected.');
+    }
+  };
+
+    // Interact with blockchain by importing abis
+  const loadBlockChainData = async () => {
+    const web3 = window.web3;
+
+    const accounts = await web3.eth.getAccounts();  // get accounts
+    const account = accounts[0];  // current account
+    setCurrentAccount(account);  // set current account so it can be displayed
+
+    // get network id 
+    const networkId = await web3.eth.net.getId();
+    console.log(networkId);
+
+    // use networkId to get the network data (at bottom of Election json file)
+    const networkData = CoinSaleAbi.networks[networkId];  
+    console.log(networkData);
+
+    // // define smart contract so we can interact with it
+    // if (networkData) {
+    //   // takes 2 params. 1- abi associated with contract. 2- address of smart contract
+    //   // creates a new contract instance with all its methods and events defined in its json interface object
+    //   const election = new web3.eth.Contract(Electionabi.abi, networkData.address);
+    //   //console.log('election contract', election);
+
+    //   // get candidates data
+    //   // this is how we call a method on smart contract
+    //   // candidate object has a property methods which contains functions we can call
+    //   const candidate1 = await election.methods.Candidates(1).call();
+    //   const candidate2 = await election.methods.Candidates(2).call();
+    //   //console.log(candidate1, candidate2);
+    //   setCand1(candidate1);
+    //   setCand2(candidate2);
+    //   setElectionContract(election);  // allows us to interact with election contract
+    //   setIsLoading(false);
+    // } else {
+    //   window.alert('smart contract is not deployed to current network');
+    // }
+
+    setIsLoading(false);
+  }
+
+  // loadWeb3 and loadBlockChainData should be loaded before react returns frontend
+  useEffect(() => {
+    loadWeb3();
+    loadBlockChainData();
+  }, [])
+
+  if (isLoading) {
+    return <p>loading...</p>
+  }
+
   return (
     <div className='container'>
       <h1 className='text-center fw-bold text-success'>MikaCoin ICO Sale</h1>
@@ -30,7 +98,7 @@ function App() {
       <div className='text-center my-4 w-75 mx-auto'>
         <p className='p-2 border border-2 border-dark rounded bg-primary text-white'>
           <span className='fw-bold fs-5'>Notice: </span> 
-          This token sale uses the Kovan Test Network with fake ether. Use a browser extension such as MetaMask to connect and participate in the ICO.
+          This token sale uses the Ropsten Test Network with fake ether. Use a browser extension such as MetaMask to connect and participate in the ICO.
         </p>
       </div>
 
@@ -48,9 +116,9 @@ function App() {
           <h5 className='text-secondary'>ICO Coins Remaining:</h5>
           <p className='text-dark'>750,000</p>
         </div>
-        <div className='col-lg d-flex justify-content-between'>
+        <div className='col-lg d-flex justify-content-between'>         
           <h5 className='text-secondary'>Your Address:</h5>
-          <p className='text-dark'>0x234523wdfgsd5e2wgw</p>
+          <p className='text-dark  text-break'>{currentAccount}</p>      
         </div>
       </div>
 

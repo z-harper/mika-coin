@@ -3,7 +3,7 @@
 body {
   min-height: 100vh;
   height: 100%;
-  background-image: linear-gradient(to bottom right, rgba(255,0,0,0), rgb(255, 88, 88));
+  background-image: linear-gradient(to bottom right, rgba(255,0,0,0), rgb(88, 202, 255));
   font-family: 'Poppins', sans-serif;
 }
 
