@@ -10,12 +10,12 @@ function App() {
 
   const [currentAccount, setCurrentAccount] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [transactionIsProcessing, setTransactionIsProcessing] = useState(false);
   const [mikaCoinContract, setMikaCoinContract] = useState({});
-  const [mikaCoinTotalSupply, setMikaCoinTotalSupply] = useState();
   const [coinSaleContract, setCoinSaleContract] = useState({});
   const [coinSaleCoinsSold, setCoinSaleCoinsSold] = useState({});
   const [coinSaleCoinPrice, setCoinSaleCoinPrice] = useState({});
-  const [mikaCoinToBuy, setMikaCoinToBuy] = useState();
+  const [mikaCoinToBuy, setMikaCoinToBuy] = useState(1);
 
   // Define connection with MetaMask using web3
   const loadWeb3 = async () => {
@@ -44,8 +44,6 @@ function App() {
     if (mikaCoinData) {
       const mikaCoinContract = new web3.eth.Contract(MikaCoinAbi.abi, mikaCoinData.address);
       setMikaCoinContract(mikaCoinContract);
-      const mikaCoinTotalSupply = await mikaCoinContract.methods.totalSupply().call();
-      setMikaCoinTotalSupply(mikaCoinTotalSupply);
     } else {
       window.alert('MikaCoin contract not deployed to detected network.');
     }
@@ -71,7 +69,7 @@ function App() {
   }
 
   const buyMikaCoin = async () => {
-    setIsLoading(true);
+    setTransactionIsProcessing(true);
     await coinSaleContract
       .methods
       .buyCoins(mikaCoinToBuy)
@@ -84,10 +82,11 @@ function App() {
         console.log('sucessfully voted') 
       });
     setMikaCoinToBuy(1);
-    setIsLoading(false);
+    setTransactionIsProcessing(false);
   }
 
   const transferCoins = async () => {
+    setTransactionIsProcessing(true);
     const coinSaleAddress = coinSaleContract._address;
     await mikaCoinContract.methods
       .transfer(coinSaleAddress, 750000)
@@ -98,6 +97,7 @@ function App() {
       .on('transactionhash', ()=>{
         console.log('sucessfully transferred MikaCoin') 
       });;
+    setTransactionIsProcessing(false);
   }
 
   // loadWeb3 and loadBlockChainData should be loaded before react returns frontend
@@ -113,6 +113,17 @@ function App() {
           <span className='visually-hidden'>Loading...</span>
         </div>
         <p className='m-2'>Loading...</p>
+      </div>
+    )
+  }
+
+  if (transactionIsProcessing) {
+    return (
+      <div className='d-flex flex-column justify-content-center align-items-center my-5'>
+        <div className='spinner-border' role='status'>
+          <span className='visually-hidden'>Loading...</span>
+        </div>
+        <p className='m-2'>Please wait while your transaction processes...</p>
       </div>
     )
   }
@@ -156,14 +167,14 @@ function App() {
           type='number' 
           className='form-control' 
           min='1' max='750000'  
-          placeholder='Amount' 
           value={mikaCoinToBuy}
           onChange={e => {setMikaCoinToBuy(e.target.value)}}
         />
         <button type='submit' className='w-100 mt-2 btn btn-primary mb-3'>Buy MikaCoin</button>
       </form>
-      
+
       <div className='d-flex flex-column mx-auto p-2 bd-highlight w-75'>
+        <p className='text-center mb-0 text-secondary'>% Claimed</p>
         <ProgressBar completed={Number((coinSaleCoinsSold / 750000 * 100).toFixed(2))}  />
       </div>
 
@@ -177,7 +188,6 @@ function App() {
           <p className='text-dark  text-break'>{currentAccount}</p>      
         </div>
       </div>
-
     </div>
   );
 }
