@@ -134,7 +134,7 @@ function App() {
           <h5 className='text-secondary'>Token Type: <span className='text-dark fw-bold'>ERC-20</span></h5>
           <h5 className='text-secondary'>ICO Price: <span className='text-dark fw-bold'>1MKC = 0.001 ETH</span></h5>
           <h5 className='text-secondary'>Total Tokens: <span className='text-dark fw-bold'>1,000,000</span></h5>
-          <h5 className='text-secondary'>Available for ICO: <span className='text-dark fw-bold'>75%</span></h5>
+          <h5 className='text-secondary'>Available for ICO: <span className='text-dark fw-bold'>750,000</span></h5>
           <br/>
           <h5 className='text-danger'>Vision</h5>
           <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Obcaecati, necessitatibus molestiae minus facilis voluptates consequatur repellat, voluptate perspiciatis nisi harum officiis optio in eveniet? Consequatur similique doloribus rerum! Omnis, mollitia.</p>
@@ -162,8 +162,10 @@ function App() {
         />
         <button type='submit' className='w-100 mt-2 btn btn-primary mb-3'>Buy MikaCoin</button>
       </form>
-
-      <ProgressBar completed={(100000 / 750000 * 100).toFixed(0)+'%'} borderRadius={'5px'} />
+      
+      <div className='d-flex flex-column mx-auto p-2 bd-highlight w-75'>
+        <ProgressBar completed={Number((coinSaleCoinsSold / 750000 * 100).toFixed(2))}  />
+      </div>
 
       <div className='row mt-3'>
         <div className='col-lg d-flex justify-content-between'>
