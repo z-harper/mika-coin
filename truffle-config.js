@@ -1,6 +1,6 @@
 const path = require('path');
 const HDWalletProvider = require('./client/node_modules/@truffle/hdwallet-provider');
-require('dotenv').config();
+require('./client/node_modules/dotenv').config();
 const mnemonic = process.env.MNEMONIC;
 /**
  * Use this file to configure your truffle project. It's seeded with some

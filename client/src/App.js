@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import Web3 from 'web3';
+import MikaCoinAbi from './contracts/MikaCoin.json';
 import CoinSaleAbi from './contracts/CoinSale.json';
+import ProgressBar from "@ramonak/react-progress-bar";
 import 'animate.css';
 import MikaImg from './static/mika.PNG';
 
@@ -8,6 +10,12 @@ function App() {
 
   const [currentAccount, setCurrentAccount] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [mikaCoinContract, setMikaCoinContract] = useState({});
+  const [mikaCoinTotalSupply, setMikaCoinTotalSupply] = useState();
+  const [coinSaleContract, setCoinSaleContract] = useState({});
+  const [coinSaleCoinsSold, setCoinSaleCoinsSold] = useState({});
+  const [coinSaleCoinPrice, setCoinSaleCoinPrice] = useState({});
+  const [mikaCoinToBuy, setMikaCoinToBuy] = useState();
 
   // Define connection with MetaMask using web3
   const loadWeb3 = async () => {
@@ -25,40 +33,71 @@ function App() {
   const loadBlockChainData = async () => {
     const web3 = window.web3;
 
-    const accounts = await web3.eth.getAccounts();  // get accounts
-    const account = accounts[0];  // current account
-    setCurrentAccount(account);  // set current account so it can be displayed
+    // Get current account
+    const accounts = await web3.eth.getAccounts();  
+    const account = accounts[0];  
+    setCurrentAccount(account);  
 
-    // get network id 
-    const networkId = await web3.eth.net.getId();
-    console.log(networkId);
+    // Load MikaCoin
+    const mikaCoinId = await web3.eth.net.getId();
+    const mikaCoinData = MikaCoinAbi.networks[mikaCoinId]; 
+    if (mikaCoinData) {
+      const mikaCoinContract = new web3.eth.Contract(MikaCoinAbi.abi, mikaCoinData.address);
+      setMikaCoinContract(mikaCoinContract);
+      const mikaCoinTotalSupply = await mikaCoinContract.methods.totalSupply().call();
+      setMikaCoinTotalSupply(mikaCoinTotalSupply);
+    } else {
+      window.alert('MikaCoin contract not deployed to detected network.');
+    }
 
-    // use networkId to get the network data (at bottom of Election json file)
-    const networkData = CoinSaleAbi.networks[networkId];  
-    console.log(networkData);
+    // Load CoinSale
+    const coinSaleId = await web3.eth.net.getId();
+    const coinSaleData = CoinSaleAbi.networks[coinSaleId];  
+    if (coinSaleData) {
+      const coinSaleContract = new web3.eth.Contract(CoinSaleAbi.abi, coinSaleData.address);
+      setCoinSaleContract(coinSaleContract);
+      const coinsSold = await coinSaleContract.methods.coinsSold().call();
+      setCoinSaleCoinsSold(coinsSold);
+      const coinPrice = await coinSaleContract.methods.coinPrice().call();
+      setCoinSaleCoinPrice(coinPrice);
+    } else {
+      window.alert('CoinSale contract not deployed to detected network.');
+    }
 
-    // // define smart contract so we can interact with it
-    // if (networkData) {
-    //   // takes 2 params. 1- abi associated with contract. 2- address of smart contract
-    //   // creates a new contract instance with all its methods and events defined in its json interface object
-    //   const election = new web3.eth.Contract(Electionabi.abi, networkData.address);
-    //   //console.log('election contract', election);
+    // If both contracts have been loaded
+    if (mikaCoinData && coinSaleData) {
+      setIsLoading(false);
+    }
+  }
 
-    //   // get candidates data
-    //   // this is how we call a method on smart contract
-    //   // candidate object has a property methods which contains functions we can call
-    //   const candidate1 = await election.methods.Candidates(1).call();
-    //   const candidate2 = await election.methods.Candidates(2).call();
-    //   //console.log(candidate1, candidate2);
-    //   setCand1(candidate1);
-    //   setCand2(candidate2);
-    //   setElectionContract(election);  // allows us to interact with election contract
-    //   setIsLoading(false);
-    // } else {
-    //   window.alert('smart contract is not deployed to current network');
-    // }
-
+  const buyMikaCoin = async () => {
+    setIsLoading(true);
+    await coinSaleContract
+      .methods
+      .buyCoins(mikaCoinToBuy)
+      .send({
+        from: currentAccount,
+        value: mikaCoinToBuy * coinSaleCoinPrice,
+        gas: 500000 
+      }) 
+      .on('transactionhash', ()=>{
+        console.log('sucessfully voted') 
+      });
+    setMikaCoinToBuy(1);
     setIsLoading(false);
+  }
+
+  const transferCoins = async () => {
+    const coinSaleAddress = coinSaleContract._address;
+    await mikaCoinContract.methods
+      .transfer(coinSaleAddress, 750000)
+      .send({
+        from: currentAccount,
+        gas: 500000 
+      }) 
+      .on('transactionhash', ()=>{
+        console.log('sucessfully transferred MikaCoin') 
+      });;
   }
 
   // loadWeb3 and loadBlockChainData should be loaded before react returns frontend
@@ -68,7 +107,14 @@ function App() {
   }, [])
 
   if (isLoading) {
-    return <p>loading...</p>
+    return (
+      <div className='d-flex flex-column justify-content-center align-items-center my-5'>
+        <div className='spinner-border' role='status'>
+          <span className='visually-hidden'>Loading...</span>
+        </div>
+        <p className='m-2'>Loading...</p>
+      </div>
+    )
   }
 
   return (
@@ -102,19 +148,27 @@ function App() {
         </p>
       </div>
 
-      <form className='mx-auto w-50'>    
-        <input type='number' className='form-control' min='1' max='750000'  placeholder='Amount' />
+      <form 
+        className='mx-auto w-50' 
+        onSubmit={(e) => {e.preventDefault(); buyMikaCoin() }}
+      >    
+        <input 
+          type='number' 
+          className='form-control' 
+          min='1' max='750000'  
+          placeholder='Amount' 
+          value={mikaCoinToBuy}
+          onChange={e => {setMikaCoinToBuy(e.target.value)}}
+        />
         <button type='submit' className='w-100 mt-2 btn btn-primary mb-3'>Buy MikaCoin</button>
       </form>
 
-      <div className='progress mb-3'>
-        <div className='progress-bar progress-bar-striped w-50' role='progressbar' aria-valuenow='75' aria-valuemin='0' aria-valuemax='100'></div>
-      </div>
+      <ProgressBar completed={(100000 / 750000 * 100).toFixed(0)+'%'} borderRadius={'5px'} />
 
-      <div className='row'>
+      <div className='row mt-3'>
         <div className='col-lg d-flex justify-content-between'>
           <h5 className='text-secondary'>ICO Coins Remaining:</h5>
-          <p className='text-dark'>750,000</p>
+          <p className='text-dark'>{(750000 - coinSaleCoinsSold).toLocaleString()}</p>
         </div>
         <div className='col-lg d-flex justify-content-between'>         
           <h5 className='text-secondary'>Your Address:</h5>
